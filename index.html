@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Store Palette Blueprint</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script
+      src="https://unpkg.com/htmx.org@2.0.4"
+      integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+"
+      crossorigin="anonymous"
+    ></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/" aria-label="Oak & Loom home">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span>Oak & Loom</span>
+      </a>
+      <nav class="nav-links" aria-label="Main navigation preview">
+        <a href="#">Store</a>
+        <a href="#">About us</a>
+        <a href="#">Contacts</a>
+      </nav>
+      <button class="icon-button" type="button" aria-label="Open cart preview">
+        <span aria-hidden="true">Cart</span>
+      </button>
+    </header>
+
+    <main>
+      <section class="blueprint-hero" aria-labelledby="page-title">
+        <div class="hero-copy">
+          <p class="eyebrow">Color blueprint</p>
+          <h1 id="page-title">Warm natural furniture palette</h1>
+          <p>
+            A first-pass HTMX page template for checking how the store's
+            surfaces, product cards, and actions feel before the catalog is
+            wired in.
+          </p>
+          <div class="hero-actions">
+            <button
+              class="button button-primary"
+              type="button"
+              hx-get="./fragments/palette-warm-natural.html"
+              hx-target="#palette-preview"
+              hx-swap="innerHTML"
+            >
+              Load Palette
+            </button>
+            <button class="button button-secondary" type="button">
+              Save Draft
+            </button>
+          </div>
+        </div>
+
+        <div
+          id="palette-preview"
+          class="preview-panel"
+          hx-get="./fragments/palette-warm-natural.html"
+          hx-trigger="load"
+          hx-swap="innerHTML"
+        >
+          <div class="loading-block">Loading palette preview...</div>
+        </div>
+      </section>
+
+      <section class="surface-band" aria-labelledby="tokens-title">
+        <div class="section-heading">
+          <p class="eyebrow">Design tokens</p>
+          <h2 id="tokens-title">Starting color system</h2>
+        </div>
+
+        <div class="token-grid" aria-label="Color token list">
+          <article class="token-card">
+            <span class="swatch bg-ivory"></span>
+            <div>
+              <h3>Warm ivory</h3>
+              <p>Background · #F7F1E8</p>
+            </div>
+          </article>
+          <article class="token-card">
+            <span class="swatch bg-text"></span>
+            <div>
+              <h3>Charcoal brown</h3>
+              <p>Main text · #2B2118</p>
+            </div>
+          </article>
+          <article class="token-card">
+            <span class="swatch bg-walnut"></span>
+            <div>
+              <h3>Deep walnut</h3>
+              <p>Brand · #5A3E2B</p>
+            </div>
+          </article>
+          <article class="token-card">
+            <span class="swatch bg-clay"></span>
+            <div>
+              <h3>Soft clay</h3>
+              <p>Secondary · #B9825A</p>
+            </div>
+          </article>
+          <article class="token-card">
+            <span class="swatch bg-sage"></span>
+            <div>
+              <h3>Olive sage</h3>
+              <p>Accent · #7A8450</p>
+            </div>
+          </article>
+          <article class="token-card">
+            <span class="swatch bg-sand"></span>
+            <div>
+              <h3>Sand beige</h3>
+              <p>Sections · #E6D6C3</p>
+            </div>
+          </article>
+          <article class="token-card">
+            <span class="swatch bg-taupe"></span>
+            <div>
+              <h3>Taupe</h3>
+              <p>Borders · #C6B49E</p>
+            </div>
+          </article>
+          <article class="token-card">
+            <span class="swatch bg-terracotta"></span>
+            <div>
+              <h3>Burnt terracotta</h3>
+              <p>CTA · #A65335</p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="product-strip" aria-labelledby="components-title">
+        <div class="section-heading">
+          <p class="eyebrow">Component feel</p>
+          <h2 id="components-title">Store UI samples</h2>
+        </div>
+
+        <div class="sample-grid">
+          <article class="product-card">
+            <div class="photo-placeholder">
+              <span>Oak</span>
+            </div>
+            <div class="product-meta">
+              <span class="badge">New</span>
+              <h3>Lowline walnut console</h3>
+              <p>Deep grain, softened edges, hand-rubbed finish.</p>
+              <button class="button button-primary" type="button">
+                View Collection
+              </button>
+            </div>
+          </article>
+
+          <article class="filter-panel">
+            <h3>Filter surface</h3>
+            <label>
+              <span>Wood tone</span>
+              <select>
+                <option>Walnut</option>
+                <option>Oak</option>
+                <option>Ash</option>
+              </select>
+            </label>
+            <label class="check-row">
+              <input type="checkbox" checked />
+              <span>Show sustainable materials</span>
+            </label>
+          </article>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
