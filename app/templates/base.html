@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="{{ locale }}">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{% block title %}{{ t("brand") }}{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css', v='pine-baikal-1') }}" />
+    <script
+      src="https://unpkg.com/htmx.org@2.0.4"
+      integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+"
+      crossorigin="anonymous"
+    ></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="{{ url_for('store.index') }}" aria-label="{{ t('brand') }}">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span>{{ t("brand") }}</span>
+      </a>
+      <nav class="nav-links" aria-label="{{ t('main_navigation') }}">
+        <a href="{{ url_for('store.index') }}">{{ t("catalog") }}</a>
+        <a href="{{ url_for('store.checkout') }}">{{ t("checkout") }}</a>
+      </nav>
+      <nav class="locale-switcher" aria-label="{{ t('language') }}">
+        <a class="{{ 'active' if locale == 'ru' }}" href="{{ url_for('store.switch_locale', locale='ru') }}">RU</a>
+        <a class="{{ 'active' if locale == 'en' }}" href="{{ url_for('store.switch_locale', locale='en') }}">EN</a>
+      </nav>
+      <a
+        class="icon-button"
+        href="{{ url_for('store.cart_page') }}"
+        hx-get="{{ url_for('store.cart_fragment') }}"
+        hx-target="#cart-panel"
+        hx-swap="innerHTML"
+      >
+        {{ t("cart") }} <span id="cart-count">{{ cart_summary.item_count }}</span>
+      </a>
+    </header>
+    <main>
+      {% block content %}{% endblock %}
+    </main>
+    <aside id="cart-panel" class="cart-panel" aria-live="polite"></aside>
+  </body>
+</html>

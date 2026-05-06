@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t("order_confirmed") }} #{{ order.id }} · {{ t("brand") }}{% endblock %}
+
+{% block content %}
+  <section class="page-section narrow-page">
+    <p class="eyebrow">{{ t("order_confirmed") }}</p>
+    <h1>{{ t("order") }} #{{ order.id }}</h1>
+    <p>
+      {{ t("order_email_copy") }} {{ order.email }}. {{ t("payment_status") }}:
+      <strong>{{ t(order.payment_status) }}</strong>.
+    </p>
+    {% if order.payment_error %}
+      <p class="form-error">{{ order.payment_error }}</p>
+    {% endif %}
+    {% if order.payment_redirect_url and order.payment_status in ["pending", "error"] %}
+      <p><a class="button button-primary" href="{{ order.payment_redirect_url }}">{{ t("continue_payment") }}</a></p>
+    {% endif %}
+    <div class="order-summary">
+      <h2>{{ t("items") }}</h2>
+      {% for item in items %}
+        <div class="summary-line">
+          <span>{{ item.product_name }} × {{ item.quantity }}</span>
+          <strong>{{ (item.unit_price_cents * item.quantity)|money }}</strong>
+        </div>
+      {% endfor %}
+      <div class="cart-total">
+        <span>{{ t("total") }}</span>
+        <strong>{{ order.total_cents|money }}</strong>
+      </div>
+    </div>
+    <p class="manual-note">
+      {% if order.payment_provider == "manual" %}
+        {{ t("manual_pending_copy") }}
+      {% else %}
+        {{ t("payment_pending_copy") }}
+      {% endif %}
+      {{ order.payment_reference or "" }}
+    </p>
+    <a class="button button-secondary" href="{{ url_for('store.index') }}">{{ t("back_to_catalog") }}</a>
+  </section>
+{% endblock %}

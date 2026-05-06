@@ -1,0 +1,7 @@
+<div class="product-grid">
+  {% for product in products %}
+    {% include "fragments/product_card.html" %}
+  {% else %}
+    <p class="empty-state">{{ t("no_filter_results") }}</p>
+  {% endfor %}
+</div>

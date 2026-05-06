@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t("checkout") }} · {{ t("brand") }}{% endblock %}
+
+{% block content %}
+  <section class="checkout-layout">
+    <div>
+      <p class="eyebrow">{{ t("checkout") }}</p>
+      <h1>{{ t("shipping_details") }}</h1>
+      {% if errors.cart %}
+        <p class="form-error">{{ errors.cart }}</p>
+      {% endif %}
+      <form class="checkout-form" method="post" action="{{ url_for('store.checkout_submit') }}">
+        <label>
+          <span>{{ t("name") }}</span>
+          <input name="customer_name" value="{{ form.customer_name or '' }}" autocomplete="name" required />
+          {% if errors.customer_name %}<small>{{ errors.customer_name }}</small>{% endif %}
+        </label>
+        <label>
+          <span>{{ t("email") }}</span>
+          <input name="email" type="email" value="{{ form.email or '' }}" autocomplete="email" required />
+          {% if errors.email %}<small>{{ errors.email }}</small>{% endif %}
+        </label>
+        <label>
+          <span>{{ t("phone") }}</span>
+          <input name="phone" value="{{ form.phone or '' }}" autocomplete="tel" />
+        </label>
+        <label>
+          <span>{{ t("shipping_address") }}</span>
+          <textarea name="shipping_address" rows="5" required>{{ form.shipping_address or '' }}</textarea>
+          {% if errors.shipping_address %}<small>{{ errors.shipping_address }}</small>{% endif %}
+        </label>
+        <button class="button button-primary" type="submit">{{ t("place_order") }}</button>
+      </form>
+    </div>
+    <aside class="order-summary">
+      <h2>{{ t("order_summary") }}</h2>
+      {% for item in items %}
+        <div class="summary-line">
+          <span>{{ product_name(item.product) }} × {{ item.quantity }}</span>
+          <strong>{{ item.line_total_cents|money }}</strong>
+        </div>
+      {% endfor %}
+      <div class="cart-total">
+        <span>{{ t("total") }}</span>
+        <strong>{{ total_cents|money }}</strong>
+      </div>
+      <p>{{ t("manual_payment_note") }}</p>
+    </aside>
+  </section>
+{% endblock %}

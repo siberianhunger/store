@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}{{ product_name(product) }} · {{ t("brand") }}{% endblock %}
+
+{% block content %}
+  <section class="detail-layout">
+    <div class="detail-image">
+      <img
+        src="{{ url_for('store.media', filename=product.image_path.replace('media/', '', 1)) }}"
+        alt="{{ product_name(product) }}"
+      />
+    </div>
+    <div class="detail-copy">
+      <p class="eyebrow">{{ product.origin }}</p>
+      <h1>{{ product_name(product) }}</h1>
+      <p>{{ product_description(product) }}</p>
+      <dl class="facts-list">
+        <div><dt>{{ t("finish") }}</dt><dd>{{ product.finish }}</dd></div>
+        <div><dt>{{ t("color") }}</dt><dd>{{ color_label(product.color_family) }}</dd></div>
+        <div><dt>{{ t("weight") }}</dt><dd>{{ product.weight_grams }} g</dd></div>
+        <div><dt>{{ t("stock") }}</dt><dd>{{ product.stock }}</dd></div>
+      </dl>
+      <div class="detail-actions">
+        <strong>{{ product.price_cents|money }}</strong>
+        <form
+          method="post"
+          action="{{ url_for('store.cart_add', product_id=product.id) }}"
+          hx-post="{{ url_for('store.cart_add', product_id=product.id) }}"
+          hx-target="#cart-panel"
+          hx-swap="innerHTML"
+        >
+          <button class="button button-primary" type="submit">{{ t("add_to_cart") }}</button>
+        </form>
+      </div>
+    </div>
+  </section>
+{% endblock %}

@@ -1,0 +1,29 @@
+<article class="stone-card">
+  <a class="stone-image-frame" href="{{ url_for('store.product_detail', slug=product.slug) }}">
+    <img
+      src="{{ url_for('store.media', filename=product.image_path.replace('media/', '', 1)) }}"
+      alt="{{ product.name }}"
+      loading="lazy"
+    />
+  </a>
+  <div class="stone-card-body">
+    <div class="stone-card-top">
+      <span class="badge">{{ color_label(product.color_family) }}</span>
+      <span>{{ product.weight_grams }} g</span>
+    </div>
+    <h3><a href="{{ url_for('store.product_detail', slug=product.slug) }}">{{ product_name(product) }}</a></h3>
+    <p class="stone-description">{{ product_description(product) }}</p>
+    <div class="stone-card-actions">
+      <strong>{{ product.price_cents|money }}</strong>
+      <form
+        method="post"
+        action="{{ url_for('store.cart_add', product_id=product.id) }}"
+        hx-post="{{ url_for('store.cart_add', product_id=product.id) }}"
+        hx-target="#cart-panel"
+        hx-swap="innerHTML"
+      >
+        <button class="button button-primary" type="submit">{{ t("add") }}</button>
+      </form>
+    </div>
+  </div>
+</article>

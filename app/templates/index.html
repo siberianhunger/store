@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block content %}
+  <section class="store-hero" aria-labelledby="page-title">
+    <div class="hero-copy">
+      <p class="eyebrow">{{ t("lake_stones") }}</p>
+      <h1 id="page-title">{{ t("hero_title") }}</h1>
+      <p>{{ t("hero_copy") }}</p>
+    </div>
+    <div class="hero-stats">
+      <strong>{{ products|length }}</strong>
+      <span>{{ t("stones_available") }}</span>
+    </div>
+  </section>
+
+  <section class="catalog-band" aria-labelledby="catalog-title">
+    <div class="section-heading">
+      <div>
+        <p class="eyebrow">{{ t("catalog") }}</p>
+        <h2 id="catalog-title">{{ t("choose_stone") }}</h2>
+      </div>
+      <div class="filter-tabs" aria-label="{{ t('filter_by_color') }}">
+        <a
+          class="{{ 'active' if not selected_color }}"
+          href="{{ url_for('store.index') }}"
+          hx-get="{{ url_for('store.product_grid_fragment') }}"
+          hx-target="#product-grid"
+          hx-swap="innerHTML"
+        >{{ t("all") }}</a>
+        {% for color in color_families %}
+          <a
+            class="{{ 'active' if selected_color == color }}"
+            href="{{ url_for('store.index', color=color) }}"
+            hx-get="{{ url_for('store.product_grid_fragment', color=color) }}"
+            hx-target="#product-grid"
+            hx-swap="innerHTML"
+          >{{ color_label(color) }}</a>
+        {% endfor %}
+      </div>
+    </div>
+    <div id="product-grid">
+      {% include "fragments/product_grid.html" %}
+    </div>
+  </section>
+{% endblock %}
