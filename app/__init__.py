@@ -9,7 +9,7 @@ def create_app(test_config=None):
     load_dotenv()
     app = Flask(__name__, static_folder="../static", static_url_path="/static")
     load_config(app)
-    app.config["DATABASE"] = os.path.join(os.getcwd(), "store.db")
+    app.config["DATABASE"] = os.environ.get("DATABASE") or os.path.join(os.getcwd(), "store.db")
     app.config["MEDIA_DIR"] = os.path.join(os.getcwd(), "media")
     if test_config:
         app.config.update(test_config)

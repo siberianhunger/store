@@ -1,4 +1,5 @@
 import sqlite3
+from contextlib import contextmanager
 from pathlib import Path
 
 from flask import current_app, g
@@ -40,6 +41,29 @@ CREATE TABLE IF NOT EXISTS orders (
     stock_decremented_at TEXT,
     telegram_paid_notified_at TEXT,
     telegram_manual_notified_at TEXT,
+    public_code TEXT UNIQUE,
+    access_token_hash TEXT,
+    access_token_created_at TEXT,
+    customer_email_normalized TEXT,
+    reserved_at TEXT,
+    reservation_expires_at TEXT,
+    reservation_released_at TEXT,
+    canceled_at TEXT,
+    refunded_at TEXT,
+    refund_reference TEXT,
+    refund_status TEXT,
+    refund_error TEXT,
+    receipt_required INTEGER NOT NULL DEFAULT 0,
+    receipt_status TEXT,
+    receipt_error TEXT,
+    shipping_carrier TEXT,
+    shipping_tracking_number TEXT,
+    shipping_tracking_url TEXT,
+    shipping_public_note TEXT,
+    shipped_at TEXT,
+    shipping_updated_at TEXT,
+    shipping_updated_by_chat_id TEXT,
+    shipping_updated_by_user_id TEXT,
     total_cents INTEGER NOT NULL,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -73,6 +97,29 @@ MIGRATIONS = {
         "stock_decremented_at": "TEXT",
         "telegram_paid_notified_at": "TEXT",
         "telegram_manual_notified_at": "TEXT",
+        "public_code": "TEXT",
+        "access_token_hash": "TEXT",
+        "access_token_created_at": "TEXT",
+        "customer_email_normalized": "TEXT",
+        "reserved_at": "TEXT",
+        "reservation_expires_at": "TEXT",
+        "reservation_released_at": "TEXT",
+        "canceled_at": "TEXT",
+        "refunded_at": "TEXT",
+        "refund_reference": "TEXT",
+        "refund_status": "TEXT",
+        "refund_error": "TEXT",
+        "receipt_required": "INTEGER NOT NULL DEFAULT 0",
+        "receipt_status": "TEXT",
+        "receipt_error": "TEXT",
+        "shipping_carrier": "TEXT",
+        "shipping_tracking_number": "TEXT",
+        "shipping_tracking_url": "TEXT",
+        "shipping_public_note": "TEXT",
+        "shipped_at": "TEXT",
+        "shipping_updated_at": "TEXT",
+        "shipping_updated_by_chat_id": "TEXT",
+        "shipping_updated_by_user_id": "TEXT",
     },
 }
 
@@ -81,8 +128,24 @@ def get_db():
     if "db" not in g:
         conn = sqlite3.connect(current_app.config["DATABASE"])
         conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA foreign_keys = ON")
         g.db = conn
     return g.db
+
+
+@contextmanager
+def transaction():
+    db = get_db()
+    if db.in_transaction:
+        raise RuntimeError("Nested transactions are not supported.")
+    try:
+        db.execute("BEGIN IMMEDIATE")
+        yield db
+    except Exception:
+        db.rollback()
+        raise
+    else:
+        db.commit()
 
 
 def close_db(_error=None):
@@ -107,6 +170,9 @@ def migrate_db():
         for column_name, column_type in columns.items():
             if column_name not in existing:
                 db.execute(f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_type}")
+    db.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_public_code ON orders(public_code)"
+    )
 
 
 def init_app(app):

@@ -7,11 +7,12 @@ from flask import (
     render_template,
     request,
     send_from_directory,
+    session,
     url_for,
 )
 
 from app import cart, models
-from app.config import yookassa_ready
+from app.config import fake_payments_ready, telegram_inbound_ready, yookassa_ready
 from app.i18n import (
     color_label,
     get_locale,
@@ -24,8 +25,15 @@ from app.notifications import (
     send_manual_pending_order_notification,
     send_order_paid_notification,
 )
+from app.notifications.telegram import (
+    build_shipping_success_reply,
+    parse_ship_command,
+    send_telegram_message,
+    telegram_update_authorized,
+)
 from app.payments import get_payment_provider
 from app.payments.base import PaymentProviderError
+from app.payments.fake_yookassa import fake_payment_payload
 from app.payments.yookassa import YooKassaPaymentProvider, dumps_payload
 
 bp = Blueprint("store", __name__)
@@ -55,9 +63,38 @@ def is_htmx():
     return request.headers.get("HX-Request") == "true"
 
 
+def dev_flow_enabled():
+    return current_app.config.get("APP_MODE") == "dev_flow"
+
+
+def fake_payments_enabled():
+    return fake_payments_ready(current_app.config)
+
+
+def require_fake_payments():
+    if not (dev_flow_enabled() and fake_payments_enabled()):
+        abort(404)
+
+
 def render_cart_response(status=200):
     template = "fragments/cart_drawer.html" if is_htmx() else "cart.html"
     return render_template(template, **cart.cart_summary()), status
+
+
+def remember_order_access(order_id):
+    owned = set(session.get("owned_order_ids", []))
+    owned.add(order_id)
+    session["owned_order_ids"] = sorted(owned)
+    session.modified = True
+
+
+def has_order_access(order):
+    if order is None:
+        return False
+    if order["id"] in session.get("owned_order_ids", []):
+        return True
+    access_key = request.values.get("access_key", "")
+    return bool(access_key and models.access_key_matches(order, access_key))
 
 
 @bp.get("/locale/<locale>")
@@ -179,24 +216,40 @@ def checkout_submit():
 
     provider = get_payment_provider()
     is_yookassa = getattr(provider, "provider", "manual") == "yookassa"
-    order_id = models.create_order_from_cart(
-        form,
-        summary["items"],
-        status="awaiting_payment" if is_yookassa else "new",
-        payment_status="pending" if is_yookassa else "pending_manual",
-        payment_provider=getattr(provider, "provider", "manual"),
-    )
+    try:
+        order_id, access_key = models.create_order_from_cart(
+            form,
+            summary["items"],
+            status="awaiting_payment" if is_yookassa else "new",
+            payment_status="pending" if is_yookassa else "pending_manual",
+            payment_provider=getattr(provider, "provider", "manual"),
+            reserve_stock=is_yookassa,
+        )
+    except models.InsufficientStockError:
+        errors["cart"] = t("validation_stock")
+        return render_template("checkout.html", errors=errors, form=form, **summary), 400
+    remember_order_access(order_id)
+    session["last_order_access_key"] = access_key
     order = models.get_order(order_id)
     try:
         payment_result = provider.create_payment(order)
     except PaymentProviderError as exc:
-        models.update_order_payment(
-            order_id,
-            status="payment_error",
-            payment_status="error",
-            payment_error=str(exc),
-        )
-        return redirect(url_for("store.order_success", order_id=order_id))
+        if is_yookassa:
+            models.release_order_reservation(
+                order_id,
+                status="payment_error",
+                payment_status="error",
+                payment_error=str(exc),
+            )
+        else:
+            models.update_order_payment(
+                order_id,
+                status="payment_error",
+                payment_status="error",
+                payment_error=str(exc),
+            )
+        order = models.get_order(order_id)
+        return redirect(url_for("store.order_success", public_code=order["public_code"]))
     models.update_order_payment(
         order_id,
         status=payment_result.order_status,
@@ -213,16 +266,57 @@ def checkout_submit():
     if not is_yookassa:
         maybe_send_manual_notification(order_id)
     cart.clear_cart()
-    return redirect(url_for("store.order_success", order_id=order_id))
+    return redirect(url_for("store.order_success", public_code=order["public_code"]))
 
 
-@bp.get("/orders/<int:order_id>")
-def order_success(order_id):
-    order = models.get_order(order_id)
+@bp.get("/orders/<public_code>")
+def order_success(public_code):
+    order = models.get_order_by_public_code(public_code)
     if order is None:
         abort(404)
-    items = models.get_order_items(order_id)
-    return render_template("order_success.html", order=order, items=items)
+    access_granted = has_order_access(order)
+    items = models.get_order_items(order["id"])
+    access_key = session.pop("last_order_access_key", None) if access_granted else None
+    return render_template(
+        "order_success.html",
+        order=order,
+        items=items if access_granted else [],
+        access_granted=access_granted,
+        access_key=access_key,
+    )
+
+
+@bp.get("/orders/<int:_order_id>")
+def legacy_order_id(_order_id):
+    abort(404)
+
+
+@bp.get("/track")
+def track_order():
+    return render_template("track_order.html", errors={}, form={})
+
+
+@bp.post("/track")
+def track_order_submit():
+    form = {
+        "public_code": request.form.get("public_code", "").strip().upper(),
+        "email": request.form.get("email", "").strip(),
+        "access_key": request.form.get("access_key", "").strip(),
+    }
+    generic_error = t("tracking_error")
+    order = models.get_order_by_public_code(form["public_code"])
+    if (
+        order is None
+        or order["customer_email_normalized"] != models.normalize_email(form["email"])
+        or not models.access_key_matches(order, form["access_key"])
+    ):
+        return render_template(
+            "track_order.html",
+            errors={"tracking": generic_error},
+            form=form,
+        ), 400
+    remember_order_access(order["id"])
+    return redirect(url_for("store.order_success", public_code=order["public_code"]))
 
 
 @bp.get("/payments/yookassa/return")
@@ -232,7 +326,20 @@ def yookassa_return():
         abort(400)
     if yookassa_ready(current_app.config):
         refresh_yookassa_payment(order_id)
-    return redirect(url_for("store.order_success", order_id=order_id))
+    order = models.get_order(order_id)
+    if order is None:
+        abort(404)
+    return redirect(url_for("store.order_success", public_code=order["public_code"]))
+
+
+@bp.get("/payments/yookassa/return/<public_code>")
+def yookassa_return_public(public_code):
+    order = models.get_order_by_public_code(public_code)
+    if order is None:
+        abort(404)
+    if yookassa_ready(current_app.config):
+        refresh_yookassa_payment(order["id"])
+    return redirect(url_for("store.order_success", public_code=order["public_code"]))
 
 
 @bp.post("/webhooks/yookassa")
@@ -282,12 +389,12 @@ def apply_yookassa_payment_status(order_id, payment):
         return paid
     if status == "canceled":
         if order["status"] != "paid":
-            models.update_order_payment(
+            models.release_order_reservation(
                 order_id,
                 status="payment_failed",
                 payment_status="canceled",
-                payment_payload_json=dumps_payload(payment),
             )
+            models.update_order_payment(order_id, payment_payload_json=dumps_payload(payment))
         return True
     models.update_order_payment(
         order_id,
@@ -303,9 +410,140 @@ def payment_matches_order(order, payment):
     metadata = payment.get("metadata") or {}
     if metadata.get("order_id") and str(order["id"]) != str(metadata.get("order_id")):
         return False
+    if metadata.get("public_code") and order["public_code"] != metadata.get("public_code"):
+        return False
     amount = payment.get("amount") or {}
     expected = f"{order['total_cents'] / 100:.2f}"
     return amount.get("value") == expected and amount.get("currency") == current_app.config["STORE_CURRENCY"]
+
+
+def fake_status_payload(order, status, mismatch=False):
+    return fake_payment_payload(order, order["payment_reference"] or f"fake-{order['public_code']}", status, mismatch=mismatch)
+
+
+@bp.get("/dev/payments/fake/<public_code>")
+def fake_payment_page(public_code):
+    require_fake_payments()
+    order = models.get_order_by_public_code(public_code)
+    if order is None:
+        abort(404)
+    return render_template("dev_fake_payment.html", order=order)
+
+
+@bp.post("/dev/payments/fake/<public_code>/succeed")
+def fake_payment_succeed(public_code):
+    require_fake_payments()
+    order = models.get_order_by_public_code(public_code)
+    if order is None:
+        abort(404)
+    apply_yookassa_payment_status(order["id"], fake_status_payload(order, "succeeded"))
+    return redirect(url_for("store.order_success", public_code=order["public_code"]))
+
+
+@bp.post("/dev/payments/fake/<public_code>/cancel")
+def fake_payment_cancel(public_code):
+    require_fake_payments()
+    order = models.get_order_by_public_code(public_code)
+    if order is None:
+        abort(404)
+    apply_yookassa_payment_status(order["id"], fake_status_payload(order, "canceled"))
+    return redirect(url_for("store.order_success", public_code=order["public_code"]))
+
+
+@bp.post("/dev/payments/fake/<public_code>/fail")
+def fake_payment_fail(public_code):
+    require_fake_payments()
+    order = models.get_order_by_public_code(public_code)
+    if order is None:
+        abort(404)
+    models.release_order_reservation(
+        order["id"],
+        status="payment_error",
+        payment_status="error",
+        payment_error="Fake payment failure.",
+    )
+    return redirect(url_for("store.order_success", public_code=order["public_code"]))
+
+
+@bp.get("/dev/tools/orders")
+def dev_orders():
+    require_fake_payments()
+    orders = models.list_orders()
+    return render_template("dev_orders.html", orders=orders)
+
+
+@bp.post("/dev/tools/orders/<public_code>/payment/succeeded")
+def dev_order_payment_succeeded(public_code):
+    require_fake_payments()
+    order = models.get_order_by_public_code(public_code)
+    if order is None:
+        abort(404)
+    apply_yookassa_payment_status(order["id"], fake_status_payload(order, "succeeded"))
+    return redirect(url_for("store.dev_orders"))
+
+
+@bp.post("/dev/tools/orders/<public_code>/payment/canceled")
+def dev_order_payment_canceled(public_code):
+    require_fake_payments()
+    order = models.get_order_by_public_code(public_code)
+    if order is None:
+        abort(404)
+    apply_yookassa_payment_status(order["id"], fake_status_payload(order, "canceled"))
+    return redirect(url_for("store.dev_orders"))
+
+
+@bp.post("/dev/tools/orders/<public_code>/payment/mismatch")
+def dev_order_payment_mismatch(public_code):
+    require_fake_payments()
+    order = models.get_order_by_public_code(public_code)
+    if order is None:
+        abort(404)
+    apply_yookassa_payment_status(order["id"], fake_status_payload(order, "succeeded", mismatch=True))
+    return redirect(url_for("store.dev_orders"))
+
+
+@bp.post("/dev/tools/telegram/test")
+def dev_telegram_test():
+    if not dev_flow_enabled() or not current_app.config.get("TELEGRAM_DEV_MODE"):
+        abort(404)
+    if send_telegram_message("Baikal Stone Market dev test notification."):
+        return jsonify({"status": "sent"})
+    return jsonify({"status": "failed"}), 502
+
+
+@bp.post("/webhooks/telegram/<secret>")
+def telegram_webhook(secret):
+    if not telegram_inbound_ready(current_app.config):
+        abort(404)
+    if secret != current_app.config["TELEGRAM_WEBHOOK_SECRET"]:
+        abort(403)
+    update = request.get_json(silent=True) or {}
+    message = update.get("message") or {}
+    chat = message.get("chat") or {}
+    sender = message.get("from") or {}
+    chat_id = chat.get("id")
+    if not telegram_update_authorized(update):
+        return jsonify({"status": "ignored"}), 200
+    command = parse_ship_command(message.get("text", ""))
+    if not command:
+        send_telegram_message(
+            "Invalid command. Use: /ship BSM-YYYYMMDD-ABC123 CDEK 123456789",
+            chat_id=chat_id,
+        )
+        return jsonify({"status": "invalid"}), 200
+    ok, reason, order = models.update_order_shipping(
+        command["public_code"],
+        command["carrier"],
+        command["tracking_number"],
+        command["note"],
+        chat_id=chat_id,
+        user_id=sender.get("id"),
+    )
+    if ok:
+        send_telegram_message(build_shipping_success_reply(order), chat_id=chat_id)
+        return jsonify({"status": "ok"}), 200
+    send_telegram_message(f"Shipping update failed: {reason}.", chat_id=chat_id)
+    return jsonify({"status": "failed", "reason": reason}), 200
 
 
 def maybe_send_paid_notification(order_id):

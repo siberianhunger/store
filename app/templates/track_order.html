@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}{{ t("track_order") }} · {{ t("brand") }}{% endblock %}
+
+{% block content %}
+  <section class="page-section narrow-page">
+    <p class="eyebrow">{{ t("track_order") }}</p>
+    <h1>{{ t("track_order_title") }}</h1>
+    <p>{{ t("track_order_copy") }}</p>
+    {% if errors.tracking %}
+      <p class="form-error">{{ errors.tracking }}</p>
+    {% endif %}
+    <form class="checkout-form" method="post" action="{{ url_for('store.track_order_submit') }}">
+      <label>
+        <span>{{ t("order_code") }}</span>
+        <input name="public_code" value="{{ form.public_code or '' }}" autocomplete="off" required />
+      </label>
+      <label>
+        <span>{{ t("email") }}</span>
+        <input name="email" type="email" value="{{ form.email or '' }}" autocomplete="email" required />
+      </label>
+      <label>
+        <span>{{ t("access_key") }}</span>
+        <input name="access_key" value="{{ form.access_key or '' }}" autocomplete="off" required />
+      </label>
+      <button class="button button-primary" type="submit">{{ t("track_order") }}</button>
+    </form>
+  </section>
+{% endblock %}

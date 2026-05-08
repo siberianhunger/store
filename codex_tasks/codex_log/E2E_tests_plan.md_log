@@ -1,0 +1,9 @@
+# E2E_tests_plan.md implementation log
+
+- Started E2E-style coverage work. Because Playwright is not currently installed in the project, the first pass will add end-to-end Flask integration tests that exercise the same full flows without real external services.
+- Added `tests/e2e/test_customer_flows.py` covering manual checkout + protected tracking and YooKassa redirect + webhook finalization using fake providers and no external network calls.
+- Verified the E2E-style tests run as part of the full `uv run pytest --cov=app` suite.
+- Installed `pytest-playwright` and Chromium for real browser E2E coverage.
+- Added `tests/e2e/conftest.py` with a live Flask server fixture for Playwright tests.
+- Added `tests/e2e/test_browser_flows.py` covering manual checkout + protected tracking in Chromium, and YooKassa redirect/return status refresh in Chromium using fake providers.
+- Verified `uv run pytest tests/e2e`: 4 passed.

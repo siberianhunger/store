@@ -50,14 +50,25 @@ Required/local keys are documented in `.env.example`:
 
 ```bash
 SECRET_KEY=dev-change-me
+APP_MODE=
+DATABASE=
 STORE_CURRENCY=RUB
+PAYMENT_PROVIDER=
 YOOKASSA_ENABLED=false
 YOOKASSA_SHOP_ID=
 YOOKASSA_SECRET_KEY=
 YOOKASSA_RETURN_URL_BASE=http://127.0.0.1:5000/payments/yookassa/return
+YOOKASSA_RECEIPTS_ENABLED=false
+YOOKASSA_VAT_CODE=
+YOOKASSA_PAYMENT_MODE=
+YOOKASSA_PAYMENT_SUBJECT=
 TELEGRAM_NOTIFICATIONS_ENABLED=false
+TELEGRAM_DEV_MODE=false
 TELEGRAM_BOT_TOKEN=
 TELEGRAM_CHAT_ID=
+TELEGRAM_WEBHOOK_SECRET=
+TELEGRAM_ALLOWED_USER_IDS=
+TELEGRAM_ALLOWED_CHAT_IDS=
 ```
 
 Never commit real `.env` files or credentials.
@@ -78,6 +89,37 @@ rm -f store.db
 uv run python main.py
 ```
 
+## Local Full-Flow Dev Server
+
+Use the fake YooKassa flow when you want to click through checkout, fake payment success/cancel/failure, order tracking, and stock reservation without real YooKassa credentials:
+
+```bash
+uv run python scripts/dev_server.py
+```
+
+For a clean dev database:
+
+```bash
+uv run python scripts/reset_dev_db.py
+```
+
+The dev server uses `dev_store.db`, `APP_MODE=dev_flow`, and `PAYMENT_PROVIDER=fake_yookassa`. Checkout redirects to a local fake payment page where you can mark a payment succeeded, canceled, or failed. Dev payment tools are available at `/dev/tools/orders` only in dev-flow fake-payment mode.
+
+Telegram notification testing can use a real development bot and private dev chat:
+
+```bash
+TELEGRAM_NOTIFICATIONS_ENABLED=true
+TELEGRAM_DEV_MODE=true
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_CHAT_ID=
+```
+
+Send a test message with:
+
+```bash
+curl -X POST http://127.0.0.1:5000/dev/tools/telegram/test
+```
+
 ## Localization
 
 Russian is the default locale. Browser `Accept-Language` can select English when it is the best match. A header switcher persists manual RU/EN choice in the session.
@@ -95,7 +137,7 @@ YooKassa routes:
 
 The return/webhook handling verifies payment id, order metadata, amount, and currency before marking an order paid. Stock is decremented once when an order becomes paid.
 
-YooKassa receipt/fiscalization requirements depend on shop settings and legal setup. Confirm YooKassa receipt/54-FZ settings before production payments; receipt payloads are not implemented unless required by the shop configuration.
+YooKassa receipt/fiscalization requirements depend on shop settings and legal setup. Confirm YooKassa receipt/54-FZ settings before production payments. Receipt payloads are disabled by default and require explicit `YOOKASSA_RECEIPTS_ENABLED`, VAT, payment mode, and payment subject configuration.
 
 ## Telegram Notifications
 
@@ -113,3 +155,19 @@ Two event types are intentionally separate:
 - manual pending notification for unpaid/manual fallback orders
 
 Notification timestamps are stored on the order to avoid duplicate sends. Telegram failures are logged and do not break checkout or payment webhook handling.
+
+Telegram can also accept owner shipping updates when a webhook secret is configured:
+
+```bash
+TELEGRAM_WEBHOOK_SECRET=
+TELEGRAM_ALLOWED_CHAT_IDS=
+TELEGRAM_ALLOWED_USER_IDS=
+```
+
+Set the Telegram webhook to `/webhooks/telegram/<TELEGRAM_WEBHOOK_SECRET>`, then send:
+
+```text
+/ship BSM-20260506-K7P4Q2 CDEK 123456789
+```
+
+The command stores the carrier and tracking number on a paid order. Customers can see shipping data only after opening their protected order page with the checkout session or access key.

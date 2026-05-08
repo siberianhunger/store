@@ -1,0 +1,9 @@
+# orders_identity.md implementation log
+
+- Started implementing accountless order tracking, public order codes, access keys, reservation-safe checkout, and safer YooKassa order mapping.
+- Added order identity/reservation schema fields, SQLite transaction helper, public order code/access key generation, hashed access-key validation, reservation release, idempotent notification marking, refund status helper, and protected order lookup.
+- Updated checkout/order/track/YooKassa routes to use public order codes, session/access-key order ownership, reservation on YooKassa checkout, reservation release on payment creation failure/cancelation, public-code YooKassa returns, and stricter public-code payment matching.
+- Updated order and tracking templates/i18n/CSS so customers can track orders without accounts and protected order pages do not expose details from numeric IDs.
+- Updated YooKassa provider to send `metadata.public_code`, avoid raw access keys in return URLs/metadata, add optional receipt payload building behind config, and add a refund request helper.
+- Documented receipt environment variables in `.env.example` and `README.md`.
+- Added expired reservation cleanup through `models.release_expired_reservations()` and covered it with tests.

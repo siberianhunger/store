@@ -1,42 +1,79 @@
 {% extends "base.html" %}
 
-{% block title %}{{ t("order_confirmed") }} #{{ order.id }} · {{ t("brand") }}{% endblock %}
+{% block title %}{{ t("order") }} {{ order.public_code or ("#" ~ order.id) }} · {{ t("brand") }}{% endblock %}
 
 {% block content %}
   <section class="page-section narrow-page">
-    <p class="eyebrow">{{ t("order_confirmed") }}</p>
-    <h1>{{ t("order") }} #{{ order.id }}</h1>
-    <p>
-      {{ t("order_email_copy") }} {{ order.email }}. {{ t("payment_status") }}:
-      <strong>{{ t(order.payment_status) }}</strong>.
-    </p>
-    {% if order.payment_error %}
-      <p class="form-error">{{ order.payment_error }}</p>
-    {% endif %}
-    {% if order.payment_redirect_url and order.payment_status in ["pending", "error"] %}
-      <p><a class="button button-primary" href="{{ order.payment_redirect_url }}">{{ t("continue_payment") }}</a></p>
-    {% endif %}
-    <div class="order-summary">
-      <h2>{{ t("items") }}</h2>
-      {% for item in items %}
-        <div class="summary-line">
-          <span>{{ item.product_name }} × {{ item.quantity }}</span>
-          <strong>{{ (item.unit_price_cents * item.quantity)|money }}</strong>
+    <p class="eyebrow">{{ t("order_status") }}</p>
+    <h1>{{ t("order") }} {{ order.public_code or ("#" ~ order.id) }}</h1>
+
+    {% if not access_granted %}
+      <p>{{ t("order_private_copy") }}</p>
+      <a class="button button-primary" href="{{ url_for('store.track_order') }}">{{ t("track_order") }}</a>
+    {% else %}
+      {% if access_key %}
+        <div class="order-access-box">
+          <strong>{{ t("save_access_key") }}</strong>
+          <code>{{ access_key }}</code>
+          <p>{{ t("save_access_key_copy") }}</p>
         </div>
-      {% endfor %}
-      <div class="cart-total">
-        <span>{{ t("total") }}</span>
-        <strong>{{ order.total_cents|money }}</strong>
-      </div>
-    </div>
-    <p class="manual-note">
-      {% if order.payment_provider == "manual" %}
-        {{ t("manual_pending_copy") }}
-      {% else %}
-        {{ t("payment_pending_copy") }}
       {% endif %}
-      {{ order.payment_reference or "" }}
-    </p>
-    <a class="button button-secondary" href="{{ url_for('store.index') }}">{{ t("back_to_catalog") }}</a>
+
+      <p>
+        {{ t("order_email_copy") }} {{ order.email }}. {{ t("payment_status") }}:
+        <strong>{{ t(order.payment_status) }}</strong>.
+      </p>
+      {% if order.payment_error %}
+        <p class="form-error">{{ order.payment_error }}</p>
+      {% endif %}
+      {% if order.payment_redirect_url and order.payment_status in ["pending", "error"] %}
+        <p><a class="button button-primary" href="{{ order.payment_redirect_url }}">{{ t("continue_payment") }}</a></p>
+      {% endif %}
+      <div class="order-summary">
+        <h2>{{ t("items") }}</h2>
+        {% for item in items %}
+          <div class="summary-line">
+            <span>{{ item.product_name }} × {{ item.quantity }}</span>
+            <strong>{{ (item.unit_price_cents * item.quantity)|money }}</strong>
+          </div>
+        {% endfor %}
+        <div class="cart-total">
+          <span>{{ t("total") }}</span>
+          <strong>{{ order.total_cents|money }}</strong>
+        </div>
+      </div>
+      <p class="manual-note">
+        {% if order.payment_provider == "manual" %}
+          {{ t("manual_pending_copy") }}
+        {% elif order.payment_status == "succeeded" %}
+          {{ t("payment_paid_copy") }}
+        {% else %}
+          {{ t("payment_pending_copy") }}
+        {% endif %}
+      </p>
+      {% if order.shipping_tracking_number %}
+        <div class="order-summary shipping-summary">
+          <h2>{{ t("shipping") }}</h2>
+          <div class="summary-line">
+            <span>{{ t("shipping_carrier") }}</span>
+            <strong>{{ order.shipping_carrier }}</strong>
+          </div>
+          <div class="summary-line">
+            <span>{{ t("tracking_number") }}</span>
+            <strong>{{ order.shipping_tracking_number }}</strong>
+          </div>
+          {% if order.shipping_tracking_url %}
+            <p><a class="button button-primary" href="{{ order.shipping_tracking_url }}" rel="noopener noreferrer" target="_blank">{{ t("tracking_link") }}</a></p>
+          {% endif %}
+          {% if order.shipping_public_note %}
+            <p><strong>{{ t("shipping_note") }}:</strong> {{ order.shipping_public_note }}</p>
+          {% endif %}
+          {% if order.shipped_at %}
+            <p>{{ t("shipped_at") }}: {{ order.shipped_at }}</p>
+          {% endif %}
+        </div>
+      {% endif %}
+      <a class="button button-secondary" href="{{ url_for('store.index') }}">{{ t("back_to_catalog") }}</a>
+    {% endif %}
   </section>
 {% endblock %}

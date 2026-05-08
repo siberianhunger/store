@@ -7,7 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCE_DIR = ROOT / "media" / "separate_samples"
 OUTPUT_DIR = ROOT / "media" / "catalog_samples"
 TARGET_SIZE = (900, 1200)
-BACKGROUND = (247, 241, 232)
+BACKGROUND = (8, 34, 51)
 INNER_PADDING = 54
 
 

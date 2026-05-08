@@ -1,0 +1,10 @@
+# unit_transaction_coverage_plan.md implementation log
+
+- Started transaction and coverage hardening work. Current baseline from prior run: `uv run pytest --cov=app` reported 17 tests passing and 79% total coverage.
+- Added a SQLite transaction helper and refactored order creation/reservation and paid transitions into explicit transactions.
+- Removed the previously unused broken `models.create_order` path by replacing the model file with tested order creation through `create_order_from_cart`.
+- Expanded tests from 17 to 51, covering DB schema/migrations, order identity/rollback, stock reservation/finalization/release, tracking privacy, payment route edge cases, YooKassa error/refund paths, Telegram success/failure branches, cart edge cases, config, and localization.
+- Ran `uv run pytest`: 51 passed.
+- Ran `uv run pytest --cov=app` after reservation cleanup: 53 passed, branch coverage enabled, 87.14% total coverage, `fail_under = 85` satisfied.
+- Added an autouse test fixture blocking real external HTTP; reran `uv run pytest --cov=app`: 53 passed, 87.14% coverage.
+- After adding real Playwright E2E browser tests, reran `uv run pytest --cov=app`: 55 passed, 88.36% coverage, `fail_under = 85` still satisfied.

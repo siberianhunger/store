@@ -22,8 +22,10 @@ class YooKassaPaymentProvider(PaymentProvider):
 
     def create_payment(self, order):
         order_id = order["id"]
+        public_code = order["public_code"] if "public_code" in order.keys() else None
+        public_code = public_code or f"order-{order_id}"
         currency = current_app.config["STORE_CURRENCY"]
-        return_url = f"{current_app.config['YOOKASSA_RETURN_URL_BASE']}?order_id={order_id}"
+        return_url = f"{current_app.config['YOOKASSA_RETURN_URL_BASE'].rstrip('/')}/{public_code}"
         payload = {
             "amount": {
                 "value": amount_from_minor_units(order["total_cents"]),
@@ -34,11 +36,15 @@ class YooKassaPaymentProvider(PaymentProvider):
                 "type": "redirect",
                 "return_url": return_url,
             },
-            "description": f"Order #{order_id}"[:128],
+            "description": f"Order {public_code}"[:128],
             "metadata": {
                 "order_id": str(order_id),
+                "public_code": public_code,
             },
         }
+        receipt = build_receipt(order)
+        if receipt:
+            payload["receipt"] = receipt
         try:
             response = self.client.post(
                 f"{YOOKASSA_API}/payments",
@@ -47,7 +53,7 @@ class YooKassaPaymentProvider(PaymentProvider):
                     current_app.config["YOOKASSA_SECRET_KEY"],
                 ),
                 headers={
-                    "Idempotence-Key": f"order-{order_id}-payment-v1",
+                    "Idempotence-Key": f"pay-{public_code}-v1"[:64],
                     "Content-Type": "application/json",
                 },
                 json=payload,
@@ -80,6 +86,34 @@ class YooKassaPaymentProvider(PaymentProvider):
             raise PaymentProviderError(str(exc)) from exc
         return response.json()
 
+    def create_refund(self, order, amount_value=None):
+        amount_value = amount_value or amount_from_minor_units(order["total_cents"])
+        public_code = order["public_code"] or f"order-{order['id']}"
+        payload = {
+            "payment_id": order["payment_reference"],
+            "amount": {
+                "value": amount_value,
+                "currency": current_app.config["STORE_CURRENCY"],
+            },
+        }
+        try:
+            response = self.client.post(
+                f"{YOOKASSA_API}/refunds",
+                auth=(
+                    current_app.config["YOOKASSA_SHOP_ID"],
+                    current_app.config["YOOKASSA_SECRET_KEY"],
+                ),
+                headers={
+                    "Idempotence-Key": f"refund-{public_code}-v1"[:64],
+                    "Content-Type": "application/json",
+                },
+                json=payload,
+            )
+            response.raise_for_status()
+        except httpx.HTTPError as exc:
+            raise PaymentProviderError(str(exc)) from exc
+        return response.json()
+
 
 def _sanitize_payload(data):
     allowed = {
@@ -92,6 +126,32 @@ def _sanitize_payload(data):
         "created_at": data.get("created_at"),
     }
     return allowed
+
+
+def build_receipt(order):
+    if not current_app.config.get("YOOKASSA_RECEIPTS_ENABLED"):
+        return None
+    vat_code = current_app.config.get("YOOKASSA_VAT_CODE")
+    payment_mode = current_app.config.get("YOOKASSA_PAYMENT_MODE")
+    payment_subject = current_app.config.get("YOOKASSA_PAYMENT_SUBJECT")
+    if not (vat_code and payment_mode and payment_subject):
+        raise PaymentProviderError("YooKassa receipts are enabled but receipt config is incomplete.")
+    return {
+        "customer": {"email": order["email"]},
+        "items": [
+            {
+                "description": f"Order {order['public_code'] or order['id']}"[:128],
+                "quantity": "1.00",
+                "amount": {
+                    "value": amount_from_minor_units(order["total_cents"]),
+                    "currency": current_app.config["STORE_CURRENCY"],
+                },
+                "vat_code": int(vat_code),
+                "payment_mode": payment_mode,
+                "payment_subject": payment_subject,
+            }
+        ],
+    }
 
 
 def dumps_payload(payload):

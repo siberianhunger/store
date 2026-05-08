@@ -16,7 +16,7 @@
     >
       <label>
         <span>{{ t("qty") }}</span>
-        <input name="quantity" type="number" min="0" max="{{ item.product.stock }}" value="{{ item.quantity }}" />
+        <input name="quantity" type="number" min="0" value="{{ item.quantity }}" />
       </label>
       <button class="button button-secondary" type="submit">{{ t("update") }}</button>
     </form>

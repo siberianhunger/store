@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Fake payment · {{ t("brand") }}{% endblock %}
+
+{% block content %}
+  <section class="page-section narrow-page">
+    <p class="eyebrow">Dev payment</p>
+    <h1>{{ order.public_code }}</h1>
+    <div class="order-summary">
+      <div class="summary-line">
+        <span>Amount</span>
+        <strong>{{ order.total_cents|money }}</strong>
+      </div>
+      <div class="summary-line">
+        <span>Reference</span>
+        <strong>{{ order.payment_reference or "-" }}</strong>
+      </div>
+      <div class="dev-action-row">
+        <form method="post" action="{{ url_for('store.fake_payment_succeed', public_code=order.public_code) }}">
+          <button class="button button-primary" type="submit">Succeed</button>
+        </form>
+        <form method="post" action="{{ url_for('store.fake_payment_cancel', public_code=order.public_code) }}">
+          <button class="button button-secondary" type="submit">Cancel</button>
+        </form>
+        <form method="post" action="{{ url_for('store.fake_payment_fail', public_code=order.public_code) }}">
+          <button class="button button-secondary" type="submit">Fail</button>
+        </form>
+      </div>
+    </div>
+    <p><a class="button button-secondary" href="{{ url_for('store.order_success', public_code=order.public_code) }}">{{ t("order") }}</a></p>
+  </section>
+{% endblock %}

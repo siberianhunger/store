@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Dev orders · {{ t("brand") }}{% endblock %}
+
+{% block content %}
+  <section class="page-section">
+    <p class="eyebrow">Dev tools</p>
+    <h1>Orders</h1>
+    <div class="order-summary">
+      {% for order in orders %}
+        <div class="summary-line dev-order-line">
+          <span>
+            <strong>{{ order.public_code or ("#" ~ order.id) }}</strong><br />
+            {{ order.status }} / {{ order.payment_status }} · {{ order.total_cents|money }}
+          </span>
+          <span class="dev-action-row">
+            <form method="post" action="{{ url_for('store.dev_order_payment_succeeded', public_code=order.public_code) }}">
+              <button class="button button-primary" type="submit">Succeeded</button>
+            </form>
+            <form method="post" action="{{ url_for('store.dev_order_payment_canceled', public_code=order.public_code) }}">
+              <button class="button button-secondary" type="submit">Canceled</button>
+            </form>
+            <form method="post" action="{{ url_for('store.dev_order_payment_mismatch', public_code=order.public_code) }}">
+              <button class="button button-secondary" type="submit">Mismatch</button>
+            </form>
+          </span>
+        </div>
+      {% else %}
+        <p class="empty-state">No orders yet.</p>
+      {% endfor %}
+    </div>
+  </section>
+{% endblock %}

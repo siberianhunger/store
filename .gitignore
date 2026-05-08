@@ -5,6 +5,7 @@ __pycache__/
 .coverage
 htmlcov/
 store.db
+*.db
 *.sqlite
 instance/
 .env

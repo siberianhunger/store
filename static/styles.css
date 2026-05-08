@@ -1,18 +1,18 @@
 :root {
-  --color-background: #10231d;
-  --color-text: #edf4ef;
-  --color-brand: #f5f0df;
-  --color-secondary: #77aebe;
-  --color-accent: #9db47a;
-  --color-section: #172f27;
-  --color-border: #345348;
-  --color-cta: #7fa16b;
-  --color-cta-hover: #b2c98c;
-  --color-cta-text: #0f221c;
-  --color-muted: #b5c7bf;
-  --color-card: #1b332b;
-  --shadow-soft: 0 18px 46px rgba(3, 12, 9, 0.34);
-  --shadow-card: 0 16px 36px rgba(3, 12, 9, 0.28);
+  --color-background: #07141d;
+  --color-text: #eef7fb;
+  --color-brand: #f2fbff;
+  --color-secondary: #6bb7d6;
+  --color-accent: #87c8df;
+  --color-section: #0f2634;
+  --color-border: #315a70;
+  --color-cta: #3f9ec4;
+  --color-cta-hover: #7ed0ed;
+  --color-cta-text: #06131c;
+  --color-muted: #a8bdc8;
+  --color-card: #12384f;
+  --shadow-soft: 0 18px 46px rgba(1, 8, 14, 0.42);
+  --shadow-card: 0 16px 36px rgba(1, 8, 14, 0.34);
 }
 
 * {
@@ -30,8 +30,8 @@ body {
   min-height: 100vh;
   margin: 0;
   background:
-    radial-gradient(circle at 82% 8%, rgba(119, 174, 190, 0.18), transparent 30%),
-    radial-gradient(circle at 10% 24%, rgba(157, 180, 122, 0.12), transparent 28%),
+    radial-gradient(circle at 82% 8%, rgba(107, 183, 214, 0.14), transparent 30%),
+    radial-gradient(circle at 10% 24%, rgba(46, 100, 130, 0.18), transparent 28%),
     var(--color-background);
 }
 
@@ -132,18 +132,16 @@ img {
 }
 
 .store-hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(220px, 340px);
-  align-items: center;
-  gap: clamp(28px, 5vw, 72px);
-  padding: clamp(76px, 9vw, 122px) clamp(18px, 5vw, 64px) clamp(42px, 6vw, 72px);
+  display: block;
+  padding: clamp(34px, 5vw, 62px) clamp(18px, 5vw, 64px) clamp(24px, 4vw, 42px);
   background:
-    linear-gradient(145deg, rgba(11, 33, 27, 0.94), rgba(23, 47, 39, 0.76) 54%, rgba(52, 83, 72, 0.36)),
-    radial-gradient(circle at 78% 18%, rgba(119, 174, 190, 0.22), transparent 34%);
+    linear-gradient(145deg, rgba(5, 18, 28, 0.96), rgba(13, 43, 61, 0.82) 54%, rgba(24, 70, 91, 0.42)),
+    radial-gradient(circle at 78% 18%, rgba(107, 183, 214, 0.2), transparent 34%);
 }
 
 .hero-copy {
-  max-width: 780px;
+  width: 100%;
+  max-width: none;
 }
 
 .eyebrow {
@@ -176,6 +174,11 @@ h1 {
   line-height: 1.04;
 }
 
+.store-hero h1 {
+  max-width: none;
+  font-size: clamp(2.5rem, 5vw, 4.8rem);
+}
+
 h2 {
   margin-bottom: 0;
   font-size: clamp(2rem, 4vw, 3.6rem);
@@ -190,29 +193,11 @@ h3 {
 }
 
 .hero-copy p:not(.eyebrow) {
-  max-width: 62ch;
+  max-width: min(100%, 92ch);
   margin-bottom: 0;
   color: color-mix(in srgb, var(--color-muted) 92%, white);
   font-size: 1.08rem;
   line-height: 1.7;
-}
-
-.hero-stats {
-  min-height: 172px;
-  padding: 28px;
-  border: 1px solid var(--color-border);
-  border-radius: 18px;
-  background:
-    linear-gradient(160deg, color-mix(in srgb, var(--color-card) 92%, black), #132a23);
-  box-shadow: var(--shadow-soft);
-}
-
-.hero-stats strong {
-  display: block;
-  color: var(--color-brand);
-  font-family: Georgia, "Times New Roman", serif;
-  font-size: 4rem;
-  line-height: 1;
 }
 
 .catalog-band,
@@ -224,7 +209,7 @@ h3 {
 
 .catalog-band {
   background:
-    linear-gradient(180deg, var(--color-section), #112620);
+    linear-gradient(180deg, var(--color-section), #091d2a);
 }
 
 .section-heading {
@@ -284,7 +269,7 @@ h3 {
   min-height: 100%;
   flex-direction: column;
   overflow: visible;
-  background: var(--color-card);
+  background: #12384f;
   box-shadow: var(--shadow-card);
   transition:
     border-color 180ms ease,
@@ -306,7 +291,7 @@ h3 {
   overflow: hidden;
   padding: 0;
   border-radius: 18px 18px 0 0;
-  background: var(--color-section);
+  background: #082233;
 }
 
 .stone-image-frame img {
@@ -329,6 +314,8 @@ h3 {
   flex-direction: column;
   gap: 11px;
   padding: 17px 18px 18px;
+  background: linear-gradient(180deg, #12384f, #0d2c40);
+  border-radius: 0 0 18px 18px;
 }
 
 .stone-card-top,
@@ -354,6 +341,41 @@ h3 {
   margin-bottom: 0;
   color: var(--color-muted);
   line-height: 1.5;
+}
+
+.order-access-box {
+  display: grid;
+  gap: 8px;
+  margin: 18px 0;
+  padding: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-card) 78%, white);
+}
+
+.shipping-summary {
+  margin: 20px 0;
+}
+
+.dev-action-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.dev-order-line {
+  align-items: center;
+}
+
+.order-access-box code {
+  width: fit-content;
+  padding: 6px 10px;
+  border-radius: 6px;
+  color: var(--color-cta-text);
+  background: var(--color-cta);
+  font-weight: 800;
+  letter-spacing: 0;
 }
 
 .stone-card h3 {

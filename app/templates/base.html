@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{% block title %}{{ t("brand") }}{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css', v='pine-baikal-1') }}" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css', v='dark-lake-2') }}" />
     <script
       src="https://unpkg.com/htmx.org@2.0.4"
       integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+"
@@ -20,6 +20,7 @@
       <nav class="nav-links" aria-label="{{ t('main_navigation') }}">
         <a href="{{ url_for('store.index') }}">{{ t("catalog") }}</a>
         <a href="{{ url_for('store.checkout') }}">{{ t("checkout") }}</a>
+        <a href="{{ url_for('store.track_order') }}">{{ t("track_order") }}</a>
       </nav>
       <nav class="locale-switcher" aria-label="{{ t('language') }}">
         <a class="{{ 'active' if locale == 'ru' }}" href="{{ url_for('store.switch_locale', locale='ru') }}">RU</a>
